@@ -1,0 +1,94 @@
+import java.util.Scanner;
+import java.util.concurrent.*;
+
+class Quiz {
+    private String question;
+    private String[] options;
+    private int correctAnswer;
+
+    // Constructor
+    public Quiz(String question, String[] options, int correctAnswer) {
+        this.question = question;
+        this.options = options;
+        this.correctAnswer = correctAnswer;
+    }
+
+    // Display the question and options
+    public void displayQuestion() {
+        System.out.println(question);
+        for (int i = 0; i < options.length; i++) {
+            System.out.println((i + 1) + ". " + options[i]);
+        }
+    }
+
+    // Check if the answer is correct
+    public boolean isCorrect(int answer) {
+        return answer == correctAnswer;
+    }
+}
+
+class QuizSystem {
+    private Quiz[] quizzes;
+    private int score;
+
+    // Constructor
+    public QuizSystem(Quiz[] quizzes) {
+        this.quizzes = quizzes;
+        this.score = 0;
+    }
+
+    // Start the quiz
+    public void start() {
+        Scanner scanner = new Scanner(System.in);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        for (int i = 0; i < quizzes.length; i++) {
+            System.out.println("\nQuestion " + (i + 1) + ":");
+            quizzes[i].displayQuestion();
+
+            Future<Integer> future = executor.submit(() -> {
+                return scanner.nextInt();
+            });
+
+            try {
+                int answer = future.get(10, TimeUnit.SECONDS);  // Timer: 10 seconds per question
+                if (quizzes[i].isCorrect(answer)) {
+                    System.out.println("Correct!");
+                    score++;
+                } else {
+                    System.out.println("Incorrect.");
+                }
+            } catch (TimeoutException e) {
+                System.out.println("Time's up! Moving to the next question.");
+                future.cancel(true);
+            } catch (Exception e) {
+                System.out.println("Invalid input. Moving to the next question.");
+            }
+        }
+
+        executor.shutdown();
+        displayResult();
+    }
+
+    // Display the final result
+    public void displayResult() {
+        System.out.println("\nQuiz Finished!");
+        System.out.println("Your final score is: " + score + "/" + quizzes.length);
+    }
+}
+
+public class QuizProgram {
+    public static void main(String[] args) {
+        // Define questions, options, and correct answers
+        Quiz[] quizzes = {
+            new Quiz("What is the capital of France?", new String[]{"Berlin", "London", "Paris", "Rome"}, 3),
+            new Quiz("Which planet is known as the Red Planet?", new String[]{"Earth", "Mars", "Jupiter", "Saturn"}, 2),
+            new Quiz("What is the largest ocean on Earth?", new String[]{"Atlantic", "Indian", "Arctic", "Pacific"}, 4),
+            new Quiz("Who wrote 'Hamlet'?", new String[]{"Shakespeare", "Homer", "Dickens", "Twain"}, 1),
+            new Quiz("What is the speed of light?", new String[]{"300,000 km/s", "150,000 km/s", "200,000 km/s", "250,000 km/s"}, 1)
+        };
+
+        QuizSystem quizSystem = new QuizSystem(quizzes);
+        quizSystem.start();  // Start the quiz
+    }
+}
